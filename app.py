@@ -94,6 +94,15 @@ def init_db():
         db = get_db()
         # WAL mejora el acceso concurrente (múltiples usuarios en red)
         db.execute('PRAGMA journal_mode=WAL')
+
+        # Migración para bases de datos existentes: debe ejecutarse ANTES del executescript
+        # que crea el índice sobre la columna archivado.
+        try:
+            db.execute('ALTER TABLE ticket ADD COLUMN archivado INTEGER NOT NULL DEFAULT 0')
+            db.commit()
+        except sqlite3.OperationalError:
+            pass  # columna ya existe o la tabla aún no fue creada (se crea abajo)
+
         db.executescript('''
             CREATE TABLE IF NOT EXISTS admin (
                 id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -111,12 +120,14 @@ def init_db():
                                      CHECK(estado IN ('en_espera','en_proceso','terminado','anulado')),
                 notas_admin      TEXT,
                 fecha_creacion   TEXT    NOT NULL,
-                fecha_actualizacion TEXT NOT NULL
+                fecha_actualizacion TEXT NOT NULL,
+                archivado        INTEGER NOT NULL DEFAULT 0
             );
 
-            CREATE INDEX IF NOT EXISTS idx_ticket_estado  ON ticket(estado);
-            CREATE INDEX IF NOT EXISTS idx_ticket_sector  ON ticket(sector);
-            CREATE INDEX IF NOT EXISTS idx_ticket_fecha   ON ticket(fecha_creacion);
+            CREATE INDEX IF NOT EXISTS idx_ticket_estado    ON ticket(estado);
+            CREATE INDEX IF NOT EXISTS idx_ticket_sector    ON ticket(sector);
+            CREATE INDEX IF NOT EXISTS idx_ticket_fecha     ON ticket(fecha_creacion);
+            CREATE INDEX IF NOT EXISTS idx_ticket_archivado ON ticket(archivado);
         ''')
         admins_iniciales = [
             ('juan',    'juan1'),
@@ -292,7 +303,7 @@ def index():
         flash('¡Tu solicitud fue enviada correctamente! El equipo de Sistemas se pondrá en contacto.', 'success')
         return redirect(url_for('exito'))
 
-    total = get_db().execute('SELECT COUNT(*) FROM ticket').fetchone()[0]
+    total = get_db().execute('SELECT COUNT(*) FROM ticket WHERE archivado = 0').fetchone()[0]
     return render_template('index.html', sectores=SECTORES, form_data={}, total_tickets=total)
 
 
@@ -308,7 +319,7 @@ def solicitudes():
     filtro_estado = request.args.get('estado', '')
     busqueda = request.args.get('q', '').strip()[:200]
 
-    query = 'SELECT * FROM ticket WHERE 1=1'
+    query = 'SELECT * FROM ticket WHERE archivado = 0'
     params = []
     if filtro_estado and filtro_estado in ESTADOS:
         query += ' AND estado = ?'
@@ -320,7 +331,7 @@ def solicitudes():
     tickets = db.execute(query, params).fetchall()
 
     conteo = {e: 0 for e in ESTADOS}
-    for fila in db.execute('SELECT estado, COUNT(*) as n FROM ticket GROUP BY estado').fetchall():
+    for fila in db.execute('SELECT estado, COUNT(*) as n FROM ticket WHERE archivado = 0 GROUP BY estado').fetchall():
         conteo[fila['estado']] = fila['n']
 
     return render_template('solicitudes.html',
@@ -331,7 +342,7 @@ def solicitudes():
 @app.route('/solicitudes/<int:ticket_id>')
 def ver_solicitud(ticket_id):
     db = get_db()
-    ticket = db.execute('SELECT * FROM ticket WHERE id = ?', (ticket_id,)).fetchone()
+    ticket = db.execute('SELECT * FROM ticket WHERE id = ? AND archivado = 0', (ticket_id,)).fetchone()
     if not ticket:
         flash('Solicitud no encontrada.', 'danger')
         return redirect(url_for('solicitudes'))
@@ -390,7 +401,7 @@ def dashboard():
     filtro_sector = request.args.get('sector', '')
     busqueda = request.args.get('q', '').strip()[:200]
 
-    query = 'SELECT * FROM ticket WHERE 1=1'
+    query = 'SELECT * FROM ticket WHERE archivado = 0'
     params = []
 
     if filtro_estado and filtro_estado in ESTADOS:
@@ -407,9 +418,11 @@ def dashboard():
     tickets = db.execute(query, params).fetchall()
 
     conteo = {estado: 0 for estado in ESTADOS}
-    totales = db.execute('SELECT estado, COUNT(*) as n FROM ticket GROUP BY estado').fetchall()
+    totales = db.execute('SELECT estado, COUNT(*) as n FROM ticket WHERE archivado = 0 GROUP BY estado').fetchall()
     for fila in totales:
         conteo[fila['estado']] = fila['n']
+
+    archivados_total = db.execute('SELECT COUNT(*) FROM ticket WHERE archivado = 1').fetchone()[0]
 
     return render_template('admin/dashboard.html',
                            tickets=tickets,
@@ -418,7 +431,8 @@ def dashboard():
                            conteo=conteo,
                            filtro_estado=filtro_estado,
                            filtro_sector=filtro_sector,
-                           busqueda=busqueda)
+                           busqueda=busqueda,
+                           archivados_total=archivados_total)
 
 
 @app.route('/admin/ticket/<int:ticket_id>', methods=['GET', 'POST'])
@@ -454,25 +468,49 @@ def ver_ticket(ticket_id):
     return render_template('admin/ticket.html', ticket=ticket, estados=ESTADOS)
 
 
-@app.route('/admin/ticket/<int:ticket_id>/eliminar', methods=['POST'])
+@app.route('/admin/ticket/<int:ticket_id>/archivar', methods=['POST'])
 @login_required
-def eliminar_ticket(ticket_id):
+def archivar_ticket(ticket_id):
     db = get_db()
-    ticket = db.execute('SELECT imagen FROM ticket WHERE id = ?', (ticket_id,)).fetchone()
+    ticket = db.execute('SELECT id FROM ticket WHERE id = ? AND archivado = 0', (ticket_id,)).fetchone()
     if not ticket:
         flash('Ticket no encontrado.', 'danger')
         return redirect(url_for('dashboard'))
-    if ticket['imagen']:
-        ruta = os.path.join(app.config['UPLOAD_FOLDER'], ticket['imagen'])
-        try:
-            if os.path.exists(ruta):
-                os.remove(ruta)
-        except OSError:
-            pass  # imagen ya borrada o sin permisos; continúa igual
-    db.execute('DELETE FROM ticket WHERE id = ?', (ticket_id,))
+    ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    db.execute('UPDATE ticket SET archivado = 1, fecha_actualizacion = ? WHERE id = ?', (ahora, ticket_id))
     db.commit()
-    flash('Ticket eliminado.', 'info')
+    flash('Ticket archivado. Podés verlo en el Historial.', 'info')
     return redirect(url_for('dashboard'))
+
+
+@app.route('/admin/ticket/<int:ticket_id>/restaurar', methods=['POST'])
+@login_required
+def restaurar_ticket(ticket_id):
+    db = get_db()
+    ticket = db.execute('SELECT id FROM ticket WHERE id = ? AND archivado = 1', (ticket_id,)).fetchone()
+    if not ticket:
+        flash('Ticket no encontrado en el historial.', 'danger')
+        return redirect(url_for('historial'))
+    ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    db.execute('UPDATE ticket SET archivado = 0, fecha_actualizacion = ? WHERE id = ?', (ahora, ticket_id))
+    db.commit()
+    flash('Ticket restaurado al panel principal.', 'success')
+    return redirect(url_for('historial'))
+
+
+@app.route('/admin/historial')
+@login_required
+def historial():
+    db = get_db()
+    busqueda = request.args.get('q', '').strip()[:200]
+    query = 'SELECT * FROM ticket WHERE archivado = 1'
+    params = []
+    if busqueda:
+        query += ' AND (nombre LIKE ? OR descripcion LIKE ? OR sector LIKE ?)'
+        params.extend([f'%{busqueda}%', f'%{busqueda}%', f'%{busqueda}%'])
+    query += ' ORDER BY fecha_actualizacion DESC'
+    tickets = db.execute(query, params).fetchall()
+    return render_template('admin/historial.html', tickets=tickets, estados=ESTADOS, busqueda=busqueda)
 
 
 # ── Filtro de templates ──────────────────────────────────────────────────────

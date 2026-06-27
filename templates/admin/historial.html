@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Historial de Archivados – Gestión de Tickets{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Volver
+  </a>
+  <h4 class="mb-0"><i class="bi bi-archive me-2"></i>Historial de Archivados</h4>
+</div>
+
+<!-- Búsqueda -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+  <div class="card-body">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-12 col-md-8">
+        <label class="form-label small fw-semibold mb-1">Buscar en el historial</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control" name="q" value="{{ busqueda }}" placeholder="Nombre, sector o descripción…">
+        </div>
+      </div>
+      <div class="col-12 col-md-2 d-grid">
+        <button type="submit" class="btn btn-dark">
+          <i class="bi bi-funnel-fill"></i> Buscar
+        </button>
+      </div>
+      {% if busqueda %}
+      <div class="col-12 col-md-2 d-grid">
+        <a href="{{ url_for('historial') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-x-circle me-1"></i>Limpiar
+        </a>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- Tabla -->
+<div class="card border-0 shadow-sm rounded-4">
+  <div class="card-header bg-white border-0 py-3">
+    <h5 class="mb-0">
+      <i class="bi bi-archive me-2 text-muted"></i>Tickets archivados ({{ tickets|length }})
+    </h5>
+  </div>
+  <div class="card-body p-0">
+    {% if tickets %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Solicitante</th>
+            <th>Sector</th>
+            <th class="d-none d-md-table-cell">Estado</th>
+            <th class="d-none d-md-table-cell">Archivado</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tickets %}
+          <tr>
+            <td class="text-muted small">#{{ t.id }}</td>
+            <td class="fw-semibold">{{ t.nombre }}</td>
+            <td class="text-muted small">{{ t.sector }}</td>
+            <td class="d-none d-md-table-cell">
+              <span class="badge rounded-pill bg-{{ t.estado | estado_badge }} {{ t.estado | badge_text }}">
+                {{ t.estado | estado_label }}
+              </span>
+            </td>
+            <td class="d-none d-md-table-cell text-muted small">
+              <div>{{ t.fecha_actualizacion[:10] }}</div>
+              <div class="small opacity-60">{{ t.fecha_actualizacion[11:16] }}</div>
+            </td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end flex-wrap">
+                <a href="{{ url_for('ver_ticket', ticket_id=t.id) }}"
+                   class="btn btn-outline-dark btn-sm">
+                  <i class="bi bi-eye"></i><span class="d-none d-sm-inline ms-1">Ver</span>
+                </a>
+                <form method="POST" action="{{ url_for('restaurar_ticket', ticket_id=t.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline-success btn-sm"
+                          onclick="return confirm('¿Restaurar este ticket al panel principal?')">
+                    <i class="bi bi-arrow-counterclockwise"></i><span class="d-none d-sm-inline ms-1">Restaurar</span>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-archive" style="font-size:3rem; opacity:.3;"></i>
+      <p class="mt-3 mb-0">
+        {% if busqueda %}
+          No se encontraron tickets archivados con ese criterio.
+        {% else %}
+          No hay tickets archivados todavía.
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

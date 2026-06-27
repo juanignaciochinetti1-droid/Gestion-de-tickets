@@ -27,6 +27,9 @@
           <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light btn-sm">
             <i class="bi bi-speedometer2"></i><span class="d-none d-sm-inline ms-1">Panel</span>
           </a>
+          <a href="{{ url_for('historial') }}" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-archive"></i><span class="d-none d-sm-inline ms-1">Historial</span>
+          </a>
           <form method="POST" action="{{ url_for('logout') }}" class="d-inline m-0">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-light btn-sm text-dark">

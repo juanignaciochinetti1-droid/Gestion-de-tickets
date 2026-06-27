@@ -101,17 +101,27 @@
       </div>
     </div>
 
-    <!-- Zona peligrosa -->
-    <div class="card border-danger border-0 shadow-sm rounded-4 mt-3">
+    <!-- Archivar / Restaurar -->
+    <div class="card border-0 shadow-sm rounded-4 mt-3">
       <div class="card-body text-center">
-        <p class="text-muted small mb-2">Esta acción es permanente e irreversible.</p>
-        <form method="POST" action="{{ url_for('eliminar_ticket', ticket_id=ticket.id) }}"
-              onsubmit="return confirm('¿Seguro que querés eliminar este ticket? No se puede deshacer.');">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-outline-danger btn-sm">
-            <i class="bi bi-trash3-fill me-1"></i> Eliminar ticket
-          </button>
-        </form>
+        {% if ticket.archivado %}
+          <p class="text-muted small mb-2">Este ticket está en el historial de archivados.</p>
+          <form method="POST" action="{{ url_for('restaurar_ticket', ticket_id=ticket.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar ticket
+            </button>
+          </form>
+        {% else %}
+          <p class="text-muted small mb-2">El ticket quedará en el historial de archivados y no será visible para los empleados.</p>
+          <form method="POST" action="{{ url_for('archivar_ticket', ticket_id=ticket.id) }}"
+                onsubmit="return confirm('¿Archivar este ticket? Quedará en el historial de admins.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-archive-fill me-1"></i> Archivar ticket
+            </button>
+          </form>
+        {% endif %}
       </div>
     </div>
 

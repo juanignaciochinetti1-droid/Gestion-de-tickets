@@ -22,7 +22,8 @@
       "PowerShell(docker volume ls)",
       "PowerShell(docker exec gestiondetickets-web-1 ls /app/data/)",
       "PowerShell(Start-Sleep -Seconds 5; try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\)\" } catch { \"Error: $_\" })",
-      "PowerShell(docker exec gestiondetickets-web-1 ffmpeg -version 2>&1)"
+      "PowerShell(docker exec gestiondetickets-web-1 ffmpeg -version 2>&1)",
+      "PowerShell(Start-Sleep -Seconds 3; try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 8; \"Home: HTTP $\\($r.StatusCode\\)\" } catch { \"Error: $_\" })"
     ]
   }
 }
