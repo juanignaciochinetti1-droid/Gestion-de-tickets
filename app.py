@@ -14,8 +14,13 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
+# ── Directorio de datos (configurable para Docker) ───────────────────────────
+DATA_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
+os.makedirs(DATA_DIR, exist_ok=True)
+
+DATABASE = os.path.join(DATA_DIR, 'tickets.db')
+
 # ── Clave secreta persistente ────────────────────────────────────────────────
-# Se genera aleatoriamente en el primer arranque y se guarda en disco.
 _KEY_FILE = os.path.join(DATA_DIR, '.flask_secret')
 if os.path.exists(_KEY_FILE):
     with open(_KEY_FILE) as _f:
@@ -30,12 +35,8 @@ app.secret_key = os.environ.get('SECRET_KEY', _default_key)
 csrf = CSRFProtect(app)
 
 # ── Configuración de cookies de sesión ──────────────────────────────────────
-app.config['SESSION_COOKIE_HTTPONLY'] = True   # JS no puede leer la cookie
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Protege contra CSRF cross-site
-
-# En Docker se puede pasar DATA_DIR=/app/data para persistir DB y clave en un volumen.
-DATA_DIR    = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
-DATABASE    = os.path.join(DATA_DIR, 'tickets.db')
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB
