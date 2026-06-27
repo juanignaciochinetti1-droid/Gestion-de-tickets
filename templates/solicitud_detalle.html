@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Solicitud #{{ ticket.id }} – Gestión de Tickets{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('solicitudes') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Volver
+  </a>
+  <h4 class="mb-0">Solicitud <span class="text-muted">#{{ ticket.id }}</span></h4>
+  <span class="badge rounded-pill bg-{{ ticket.estado | estado_badge }} {{ ticket.estado | badge_text }} ms-1">
+    {{ ticket.estado | estado_label }}
+  </span>
+</div>
+
+<div class="row g-4">
+
+  <!-- Datos de la solicitud -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-header bg-white border-0 py-3">
+        <h5 class="mb-0"><i class="bi bi-ticket-perforated me-2"></i>Detalle de la Solicitud</h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4 text-muted">Solicitante</dt>
+          <dd class="col-sm-8 fw-semibold">{{ ticket.nombre }}</dd>
+
+          <dt class="col-sm-4 text-muted">Sector</dt>
+          <dd class="col-sm-8">{{ ticket.sector }}</dd>
+
+          <dt class="col-sm-4 text-muted">Fecha</dt>
+          <dd class="col-sm-8 text-muted small">{{ ticket.fecha_creacion[:10] }}</dd>
+
+          <dt class="col-sm-4 text-muted">Hora</dt>
+          <dd class="col-sm-8 text-muted small">{{ ticket.fecha_creacion[11:16] }}</dd>
+
+          <dt class="col-sm-4 text-muted">Descripción</dt>
+          <dd class="col-sm-8">
+            <div class="border rounded p-2 bg-light" style="white-space:pre-wrap;">{{ ticket.descripcion }}</div>
+          </dd>
+
+          {% if ticket.imagen %}
+          <dt class="col-sm-4 text-muted">Imagen adjunta</dt>
+          <dd class="col-sm-8">
+            <a href="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}" target="_blank">
+              <img src="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}"
+                   alt="Imagen del ticket" class="img-thumbnail" style="max-height:200px;">
+            </a>
+          </dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- Respuesta del Área de Sistemas -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header border-0 py-3"
+           style="background:#111; border-radius:calc(1rem - 1px) calc(1rem - 1px) 0 0 !important;">
+        <h5 class="mb-1 text-white">
+          <i class="bi bi-reply-fill me-2"></i>Respuesta de Sistemas
+        </h5>
+        <div class="text-white-50 small">
+          <i class="bi bi-clock me-1"></i>
+          {{ ticket.fecha_actualizacion[:10] }} — {{ ticket.fecha_actualizacion[11:16] }}
+        </div>
+      </div>
+      <div class="card-body">
+        {% if ticket.notas_admin %}
+          <div class="border rounded p-3 bg-light" style="white-space:pre-wrap; font-size:.9rem;">{{ ticket.notas_admin }}</div>
+        {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-hourglass-split" style="font-size:2.5rem; opacity:.4;"></i>
+            <p class="mt-3 mb-0 small">El equipo de Sistemas aún no respondió esta solicitud.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Acceso Admin – Gestión de Tickets{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block full_content %}
+<div class="login-wrapper d-flex align-items-center justify-content-center">
+  <div class="login-card card border-0 shadow-lg overflow-hidden">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show rounded-0 mb-0" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="row g-0 h-100">
+
+      <!-- Panel izquierdo: branding oscuro -->
+      <div class="col-md-5 d-none d-md-flex flex-column justify-content-between p-5 login-panel-left">
+        <div>
+          <i class="bi bi-ticket-perforated-fill login-icon"></i>
+          <h2 class="fw-bold mt-4 text-white">Gestión<br>de Tickets</h2>
+          <p class="text-white-50 mt-2 small">Panel de administración del Área de Sistemas</p>
+        </div>
+        <div class="text-white-50 small">
+          <i class="bi bi-building me-1"></i>Área de Sistemas
+        </div>
+      </div>
+
+      <!-- Panel derecho: formulario -->
+      <div class="col-12 col-md-7 p-4 p-lg-5 d-flex flex-column justify-content-center bg-white">
+        <div class="mb-4">
+          <a href="{{ url_for('index') }}" class="text-muted small text-decoration-none d-inline-flex align-items-center gap-1 mb-3">
+            <i class="bi bi-arrow-left"></i> Volver al inicio
+          </a>
+          <h4 class="fw-bold mb-1">Ingresar</h4>
+          <p class="text-muted small">Acceso restringido al personal de sistemas</p>
+        </div>
+
+        <form method="POST" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-3">
+            <label for="username" class="form-label fw-semibold small">Usuario</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+              <input type="text" class="form-control" id="username" name="username"
+                     autofocus autocomplete="username" required>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="password" class="form-label fw-semibold small">Contraseña</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+              <input type="password" class="form-control" id="password" name="password"
+                     autocomplete="current-password" required>
+            </div>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-dark btn-lg">
+              <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

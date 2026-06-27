@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Ticket #{{ ticket.id }} – Gestión de Tickets{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Volver
+  </a>
+  <h4 class="mb-0">Ticket <span class="text-muted">#{{ ticket.id }}</span></h4>
+  <span class="badge rounded-pill bg-{{ ticket.estado | estado_badge }} {{ ticket.estado | badge_text }} ms-1">
+    {{ ticket.estado | estado_label }}
+  </span>
+</div>
+
+<div class="row g-4">
+
+  <!-- Datos del ticket -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-header bg-white border-0 py-3">
+        <h5 class="mb-0"><i class="bi bi-ticket-perforated me-2"></i>Detalle de la Solicitud</h5>
+      </div>
+      <div class="card-body">
+
+        <dl class="row mb-0">
+          <dt class="col-sm-4 text-muted">Solicitante</dt>
+          <dd class="col-sm-8 fw-semibold">{{ ticket.nombre }}</dd>
+
+          <dt class="col-sm-4 text-muted">Sector</dt>
+          <dd class="col-sm-8">{{ ticket.sector }}</dd>
+
+          <dt class="col-sm-4 text-muted">Fecha de creación</dt>
+          <dd class="col-sm-8 text-muted small">{{ ticket.fecha_creacion }}</dd>
+
+          <dt class="col-sm-4 text-muted">Última actualización</dt>
+          <dd class="col-sm-8 text-muted small">{{ ticket.fecha_actualizacion }}</dd>
+
+          <dt class="col-sm-4 text-muted">Descripción</dt>
+          <dd class="col-sm-8">
+            <div class="border rounded p-2 bg-light" style="white-space:pre-wrap;">{{ ticket.descripcion }}</div>
+          </dd>
+
+          {% if ticket.imagen %}
+          <dt class="col-sm-4 text-muted">Imagen adjunta</dt>
+          <dd class="col-sm-8">
+            <a href="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}" target="_blank">
+              <img src="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}"
+                   alt="Imagen del ticket" class="img-thumbnail" style="max-height:200px;">
+            </a>
+          </dd>
+          {% endif %}
+        </dl>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel de gestión -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-start">
+        <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Gestionar Ticket</h5>
+        <span class="text-muted small text-end">
+          <i class="bi bi-clock me-1"></i>{{ ticket.fecha_actualizacion[:10] }}<br>
+          <span class="ms-3">{{ ticket.fecha_actualizacion[11:16] }}</span>
+        </span>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-3">
+            <label for="estado" class="form-label fw-semibold">Estado</label>
+            <select class="form-select" id="estado" name="estado">
+              {% for key, label in estados.items() %}
+                <option value="{{ key }}" {% if ticket.estado == key %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-4">
+            <label for="notas_admin" class="form-label fw-semibold">Notas internas</label>
+            <textarea class="form-control" id="notas_admin" name="notas_admin" rows="5"
+                      placeholder="Anotaciones para el equipo de sistemas…">{{ ticket.notas_admin or '' }}</textarea>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-dark">
+              <i class="bi bi-save-fill me-1"></i> Guardar cambios
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- Zona peligrosa -->
+    <div class="card border-danger border-0 shadow-sm rounded-4 mt-3">
+      <div class="card-body text-center">
+        <p class="text-muted small mb-2">Esta acción es permanente e irreversible.</p>
+        <form method="POST" action="{{ url_for('eliminar_ticket', ticket_id=ticket.id) }}"
+              onsubmit="return confirm('¿Seguro que querés eliminar este ticket? No se puede deshacer.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash3-fill me-1"></i> Eliminar ticket
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

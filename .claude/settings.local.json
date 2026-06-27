@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Start-Process \"http://localhost:5000\")",
+      "Skill(code-review)",
+      "Skill(code-review:*)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "PowerShell(Get-Command playwright, chromium, chromium-cli, npx 2>$null)",
+      "PowerShell(Start-Sleep -Seconds 3; try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\)\" } catch { \"Error: $_\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\)\" } catch { \"Error: $_\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5000/solicitudes\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\)\" } catch { \"Error: $_\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\) - X-Frame-Options: $\\($r.Headers['X-Frame-Options']\\)\" } catch { \"Error: $_\" })",
+      "PowerShell(if \\(Test-Path \"c:\\\\Users\\\\Juan Chinetti\\\\Desktop\\\\Gestion de tickets\\\\.flask_secret\"\\) { $k = Get-Content \"c:\\\\Users\\\\Juan Chinetti\\\\Desktop\\\\Gestion de tickets\\\\.flask_secret\"; \"Clave generada: $\\($k.Length\\) caracteres hex\" } else { \"Archivo no encontrado\" })",
+      "PowerShell($env:PATH = $env:PATH + \";C:\\\\Program Files\\\\Git\\\\cmd\"; git --version)",
+      "PowerShell(New-Item -ItemType File -Path \"c:\\\\Users\\\\Juan Chinetti\\\\Desktop\\\\Gestion de tickets\\\\static\\\\uploads\\\\.gitkeep\" -Force)"
+    ]
+  }
+}

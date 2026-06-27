@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Solicitud Enviada – Gestión de Tickets{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 text-center">
+    <div class="card shadow-sm border-0 rounded-4 py-5 px-4">
+      <div class="mb-3">
+        <i class="bi bi-check-circle-fill text-success" style="font-size:5rem;"></i>
+      </div>
+      <h2 class="fw-bold">¡Solicitud enviada!</h2>
+      <p class="text-muted mt-2">
+        Tu ticket fue recibido correctamente.<br>
+        El equipo de Sistemas revisará tu caso y se comunicará con vos a la brevedad.
+      </p>
+      <hr>
+      <div class="d-flex flex-wrap gap-2 justify-content-center mt-2">
+        <a href="{{ url_for('solicitudes') }}" class="btn btn-outline-dark">
+          <i class="bi bi-list-check me-1"></i>Ver solicitudes
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-dark">
+          <i class="bi bi-plus-circle me-1"></i>Enviar otra
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

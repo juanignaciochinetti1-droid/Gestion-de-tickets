@@ -1,0 +1,26 @@
+# Entorno virtual
+venv/
+
+# Base de datos
+tickets.db
+tickets.db-wal
+tickets.db-shm
+
+# Clave secreta (nunca subir al repo)
+.flask_secret
+
+# Imágenes subidas por usuarios
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Variables de entorno
+.env
+
+# Windows
+Thumbs.db
+desktop.ini

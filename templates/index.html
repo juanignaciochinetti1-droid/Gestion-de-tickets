@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Nueva Solicitud – Gestión de Tickets{% endblock %}
+{% block body_class %}home-page{% endblock %}
+{% block main_class %}container-xl py-3{% endblock %}
+
+{% block content %}
+
+<!-- Overlay de errores -->
+<div id="errorOverlay" class="error-overlay d-none" onclick="if(event.target===this)closeErrorCard()">
+  <div class="error-card card border-0">
+    <div class="card-body p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="error-icon-wrap">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </span>
+          <h5 class="mb-0 fw-semibold">Campos incompletos</h5>
+        </div>
+        <button class="btn-close" onclick="closeErrorCard()"></button>
+      </div>
+      <ul id="errorList" class="mb-0 ps-3" style="font-size:.9rem; line-height:1.8;"></ul>
+      <div class="mt-4 d-grid">
+        <button class="btn btn-dark py-2" onclick="closeErrorCard()">
+          <i class="bi bi-pencil me-1"></i>Corregir
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="home-split row g-0 shadow-sm overflow-hidden">
+
+  <!-- Panel izquierdo: info -->
+  <div class="col-lg-4 d-none d-lg-flex flex-column justify-content-between p-5 home-panel-left text-white">
+    <div>
+      <i class="bi bi-headset home-icon"></i>
+      <h3 class="fw-bold mt-3">Soporte Técnico</h3>
+      <p class="opacity-75 mt-2" style="font-size:.9rem; line-height:1.6;">
+        Completá el formulario con tu solicitud y el equipo de Sistemas se comunicará con vos a la brevedad.
+      </p>
+      <hr class="border-secondary my-4">
+      <ul class="list-unstyled opacity-60" style="font-size:.85rem;">
+        <li class="mb-3"><i class="bi bi-clock-fill me-2"></i>Atención en el mismo día hábil</li>
+        <li class="mb-3"><i class="bi bi-person-check-fill me-2"></i>Seguimiento personalizado</li>
+        <li><i class="bi bi-check2-circle me-2"></i>Resolución documentada</li>
+      </ul>
+    </div>
+
+    <!-- Botón central: vista general -->
+    <div>
+      <a href="{{ url_for('solicitudes') }}" class="btn btn-outline-light w-100 py-2">
+        <i class="bi bi-list-check me-2"></i>Ver todas las solicitudes
+      </a>
+    </div>
+
+    <!-- Contador + branding -->
+    <div>
+      <div class="mb-3">
+        <span class="fs-2 fw-bold">{{ total_tickets }}</span>
+        <span class="opacity-60 small ms-2">solicitudes registradas</span>
+      </div>
+      <div class="opacity-40 small">
+        <i class="bi bi-building me-1"></i>Área de Sistemas
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel derecho: formulario -->
+  <div class="col-12 col-lg-8 bg-white p-4 p-lg-5">
+
+    <h4 class="fw-bold mb-1">
+      <i class="bi bi-plus-circle me-2 text-muted"></i>Nueva Solicitud
+    </h4>
+    <p class="text-muted small mb-4">Los campos marcados con <span class="text-danger">*</span> son obligatorios.</p>
+
+    <form method="POST" enctype="multipart/form-data" novalidate id="ticketForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label for="nombre" class="form-label fw-semibold small">Nombre y Apellido <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+            <input type="text" class="form-control" id="nombre" name="nombre"
+                   placeholder="Ej: Juan Pérez"
+                   value="{{ form_data.get('nombre', '') }}" required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label for="sector" class="form-label fw-semibold small">Sector <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-building-fill"></i></span>
+            <select class="form-select" id="sector" name="sector" required>
+              <option value="">Seleccioná tu sector…</option>
+              {% for s in sectores %}
+                <option value="{{ s }}" {% if form_data.get('sector') == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="descripcion" class="form-label fw-semibold small">Descripción del problema <span class="text-danger">*</span></label>
+        <textarea class="form-control" id="descripcion" name="descripcion"
+                  rows="6" placeholder="Describí con el mayor detalle posible el problema que tenés…"
+                  required>{{ form_data.get('descripcion', '') }}</textarea>
+      </div>
+
+      <div class="mb-4">
+        <label for="imagen" class="form-label fw-semibold small">
+          Captura de pantalla <span class="text-muted fw-normal">(opcional)</span>
+        </label>
+        <input type="file" class="form-control" id="imagen" name="imagen"
+               accept="image/png,image/jpeg,image/gif,image/webp">
+        <div class="form-text">PNG, JPG, GIF o WEBP — máx. 5 MB</div>
+        <div id="imgPreviewWrap" class="mt-2 d-none">
+          <img id="imgPreview" src="#" alt="Vista previa" class="img-thumbnail" style="max-height:180px;">
+        </div>
+      </div>
+
+      <div class="d-grid d-md-flex justify-content-md-end">
+        <button type="submit" class="btn btn-dark btn-lg px-5">
+          <i class="bi bi-send-fill me-2"></i>Enviar Solicitud
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MAX_MB = 5;
+const inputImagen = document.getElementById('imagen');
+
+// Preview de imagen
+inputImagen.addEventListener('change', function () {
+  const wrap    = document.getElementById('imgPreviewWrap');
+  const preview = document.getElementById('imgPreview');
+  const file    = this.files[0];
+  wrap.classList.add('d-none');
+  if (!file) return;
+  if (file.size <= MAX_MB * 1024 * 1024) {
+    preview.src = URL.createObjectURL(file);
+    wrap.classList.remove('d-none');
+  }
+});
+
+// Validación completa → overlay de errores (sin recargar la página)
+document.getElementById('ticketForm').addEventListener('submit', function (e) {
+  const errors  = [];
+  const nombre  = document.getElementById('nombre').value.trim();
+  const sector  = document.getElementById('sector').value;
+  const desc    = document.getElementById('descripcion').value.trim();
+  const file    = inputImagen.files[0];
+
+  if (!nombre)
+    errors.push('El nombre es obligatorio.');
+  else if (nombre.length > 100)
+    errors.push('El nombre no puede superar los 100 caracteres.');
+
+  if (!sector)
+    errors.push('Seleccioná tu sector.');
+
+  if (!desc)
+    errors.push('La descripción del problema es obligatoria.');
+  else if (desc.length > 2000)
+    errors.push('La descripción no puede superar los 2000 caracteres.');
+
+  if (file && file.size > MAX_MB * 1024 * 1024)
+    errors.push(`La imagen pesa ${(file.size / 1024 / 1024).toFixed(1)} MB. El límite es ${MAX_MB} MB.`);
+
+  if (errors.length > 0) {
+    e.preventDefault();
+    const list = document.getElementById('errorList');
+    list.innerHTML = errors.map(m => `<li>${m}</li>`).join('');
+    const overlay = document.getElementById('errorOverlay');
+    overlay.classList.remove('d-none');
+    overlay.classList.add('d-flex');
+  }
+});
+
+function closeErrorCard() {
+  const overlay = document.getElementById('errorOverlay');
+  overlay.classList.add('d-none');
+  overlay.classList.remove('d-flex');
+}
+</script>
+{% endblock %}
