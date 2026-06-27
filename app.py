@@ -1,6 +1,7 @@
 import os
 import secrets
 import sqlite3
+import subprocess
 from collections import defaultdict
 from datetime import datetime
 from functools import wraps
@@ -37,12 +38,15 @@ csrf = CSRFProtect(app)
 # ── Configuración de cookies de sesión ──────────────────────────────────────
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-UPLOAD_FOLDER = os.path.join('static', 'uploads')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB
+UPLOAD_FOLDER    = os.path.join('static', 'uploads')
+IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+VIDEO_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'webm', 'wmv', 'flv', '3gp'}
+ALLOWED_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
+MAX_IMAGE_MB = 5
+MAX_VIDEO_MB = 150
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
+app.config['UPLOAD_FOLDER']      = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_VIDEO_MB * 1024 * 1024
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -133,6 +137,31 @@ def init_db():
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def is_video(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in VIDEO_EXTENSIONS
+
+def convert_video(input_path, output_path):
+    """Convierte cualquier video a MP4 H.264 liviano (CRF 28, max 720p, AAC)."""
+    try:
+        result = subprocess.run([
+            'ffmpeg', '-y', '-i', input_path,
+            '-c:v', 'libx264', '-crf', '28', '-preset', 'fast',
+            '-vf', 'scale=-2:min(720\\,ih)',
+            '-c:a', 'aac', '-b:a', '128k',
+            '-movflags', '+faststart',
+            output_path
+        ], capture_output=True, timeout=300)
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+def ffmpeg_disponible():
+    try:
+        subprocess.run(['ffmpeg', '-version'], capture_output=True, timeout=5)
+        return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
 
 # Verifica magic bytes del archivo para confirmar que es una imagen real.
 # Evita que alguien suba un .exe/.php renombrado como .jpg.
@@ -205,29 +234,51 @@ def index():
         if sector and sector not in SECTORES:
             errores.append('El sector seleccionado no es válido.')
 
-        # Validar imagen ANTES de guardarla en disco
+        # Validar archivo adjunto ANTES de guardarlo en disco
         archivo = request.files.get('imagen')
         imagen_nombre_seguro = None
+        adjunto_es_video = False
         if archivo and archivo.filename:
             nombre_base = secure_filename(archivo.filename)
             if not nombre_base or not allowed_file(nombre_base):
-                errores.append('Formato de imagen no válido. Usá PNG, JPG, GIF o WEBP.')
+                errores.append('Formato no válido. Imágenes: PNG, JPG, GIF, WEBP. Videos: MP4, AVI, MOV, MKV, etc.')
+            elif is_video(nombre_base):
+                if not ffmpeg_disponible():
+                    errores.append('El servidor no tiene FFmpeg instalado para procesar videos.')
+                else:
+                    imagen_nombre_seguro = nombre_base
+                    adjunto_es_video = True
             elif not is_valid_image(archivo):
                 errores.append('El archivo no es una imagen válida.')
             else:
                 imagen_nombre_seguro = nombre_base
 
+        total = get_db().execute('SELECT COUNT(*) FROM ticket').fetchone()[0]
         if errores:
             for e in errores:
                 flash(e, 'danger')
             return render_template('index.html', sectores=SECTORES,
-                                   form_data=request.form)
+                                   form_data=request.form, total_tickets=total)
 
-        # Guardar imagen solo si toda la validación pasó
+        # Guardar/convertir archivo solo si toda la validación pasó
         imagen_nombre = None
         if imagen_nombre_seguro:
-            imagen_nombre = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{imagen_nombre_seguro}"
-            archivo.save(os.path.join(app.config['UPLOAD_FOLDER'], imagen_nombre))
+            ts = datetime.now().strftime('%Y%m%d%H%M%S')
+            if adjunto_es_video:
+                ext_orig = imagen_nombre_seguro.rsplit('.', 1)[1].lower()
+                tmp_path = os.path.join(app.config['UPLOAD_FOLDER'], f'tmp_{ts}.{ext_orig}')
+                imagen_nombre = f'{ts}_video.mp4'
+                out_path = os.path.join(app.config['UPLOAD_FOLDER'], imagen_nombre)
+                archivo.save(tmp_path)
+                if not convert_video(tmp_path, out_path):
+                    os.remove(tmp_path)
+                    flash('No se pudo procesar el video. Intentá con otro formato.', 'danger')
+                    return render_template('index.html', sectores=SECTORES,
+                                           form_data=request.form, total_tickets=total)
+                os.remove(tmp_path)
+            else:
+                imagen_nombre = f'{ts}_{imagen_nombre_seguro}'
+                archivo.save(os.path.join(app.config['UPLOAD_FOLDER'], imagen_nombre))
 
         ahora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         db = get_db()
@@ -243,6 +294,7 @@ def index():
 
     total = get_db().execute('SELECT COUNT(*) FROM ticket').fetchone()[0]
     return render_template('index.html', sectores=SECTORES, form_data={}, total_tickets=total)
+
 
 
 @app.route('/exito')
@@ -430,9 +482,13 @@ def estado_label(estado):
     return ESTADOS.get(estado, estado)
 
 
+@app.template_filter('es_video')
+def es_video_filter(filename):
+    return bool(filename) and is_video(filename)
+
 @app.errorhandler(413)
 def archivo_muy_grande(e):
-    flash('La imagen es demasiado grande. El límite es 5 MB.', 'danger')
+    flash(f'Archivo demasiado grande. Límite: imágenes {MAX_IMAGE_MB} MB, videos {MAX_VIDEO_MB} MB.', 'danger')
     return redirect(url_for('index'))
 
 

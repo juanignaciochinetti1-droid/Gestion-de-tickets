@@ -41,12 +41,18 @@
           </dd>
 
           {% if ticket.imagen %}
-          <dt class="col-sm-4 text-muted">Imagen adjunta</dt>
+          <dt class="col-sm-4 text-muted">Adjunto</dt>
           <dd class="col-sm-8">
-            <a href="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}" target="_blank">
-              <img src="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}"
-                   alt="Imagen del ticket" class="img-thumbnail" style="max-height:200px;">
-            </a>
+            {% if ticket.imagen | es_video %}
+              <video controls class="img-thumbnail w-100" style="max-height:260px;">
+                <source src="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}" type="video/mp4">
+              </video>
+            {% else %}
+              <a href="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}" target="_blank">
+                <img src="{{ url_for('static', filename='uploads/' ~ ticket.imagen) }}"
+                     alt="Imagen del ticket" class="img-thumbnail" style="max-height:200px;">
+              </a>
+            {% endif %}
           </dd>
           {% endif %}
         </dl>

@@ -109,13 +109,17 @@
 
       <div class="mb-4">
         <label for="imagen" class="form-label fw-semibold small">
-          Captura de pantalla <span class="text-muted fw-normal">(opcional)</span>
+          Captura o video <span class="text-muted fw-normal">(opcional)</span>
         </label>
         <input type="file" class="form-control" id="imagen" name="imagen"
-               accept="image/png,image/jpeg,image/gif,image/webp">
-        <div class="form-text">PNG, JPG, GIF o WEBP — máx. 5 MB</div>
+               accept="image/png,image/jpeg,image/gif,image/webp,video/*">
+        <div class="form-text">Imágenes: PNG, JPG, GIF, WEBP (máx. 5 MB) &nbsp;|&nbsp; Videos: MP4, AVI, MOV, MKV… (máx. 150 MB, se convierte automáticamente)</div>
         <div id="imgPreviewWrap" class="mt-2 d-none">
           <img id="imgPreview" src="#" alt="Vista previa" class="img-thumbnail" style="max-height:180px;">
+        </div>
+        <div id="videoPreviewWrap" class="mt-2 d-none">
+          <video id="videoPreview" controls class="img-thumbnail w-100" style="max-height:200px;"></video>
+          <div class="text-muted small mt-1"><i class="bi bi-info-circle me-1"></i>El video se convertirá a MP4 liviano al subirse.</div>
         </div>
       </div>
 
@@ -133,19 +137,38 @@
 
 {% block scripts %}
 <script>
-const MAX_MB = 5;
-const inputImagen = document.getElementById('imagen');
+const MAX_IMAGE_MB = 5;
+const MAX_VIDEO_MB = 150;
+const VIDEO_EXTS   = ['mp4','avi','mov','mkv','webm','wmv','flv','3gp'];
+const inputImagen  = document.getElementById('imagen');
 
-// Preview de imagen
+function esVideo(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  return VIDEO_EXTS.includes(ext);
+}
+
+// Preview de imagen o video
 inputImagen.addEventListener('change', function () {
-  const wrap    = document.getElementById('imgPreviewWrap');
-  const preview = document.getElementById('imgPreview');
-  const file    = this.files[0];
-  wrap.classList.add('d-none');
+  const imgWrap   = document.getElementById('imgPreviewWrap');
+  const videoWrap = document.getElementById('videoPreviewWrap');
+  const imgPrev   = document.getElementById('imgPreview');
+  const vidPrev   = document.getElementById('videoPreview');
+  const file      = this.files[0];
+
+  imgWrap.classList.add('d-none');
+  videoWrap.classList.add('d-none');
   if (!file) return;
-  if (file.size <= MAX_MB * 1024 * 1024) {
-    preview.src = URL.createObjectURL(file);
-    wrap.classList.remove('d-none');
+
+  if (esVideo(file.name)) {
+    if (file.size <= MAX_VIDEO_MB * 1024 * 1024) {
+      vidPrev.src = URL.createObjectURL(file);
+      videoWrap.classList.remove('d-none');
+    }
+  } else {
+    if (file.size <= MAX_IMAGE_MB * 1024 * 1024) {
+      imgPrev.src = URL.createObjectURL(file);
+      imgWrap.classList.remove('d-none');
+    }
   }
 });
 
@@ -170,8 +193,11 @@ document.getElementById('ticketForm').addEventListener('submit', function (e) {
   else if (desc.length > 2000)
     errors.push('La descripción no puede superar los 2000 caracteres.');
 
-  if (file && file.size > MAX_MB * 1024 * 1024)
-    errors.push(`La imagen pesa ${(file.size / 1024 / 1024).toFixed(1)} MB. El límite es ${MAX_MB} MB.`);
+  if (file) {
+    const limitMB = esVideo(file.name) ? MAX_VIDEO_MB : MAX_IMAGE_MB;
+    if (file.size > limitMB * 1024 * 1024)
+      errors.push(`El archivo pesa ${(file.size/1024/1024).toFixed(1)} MB. Límite para ${esVideo(file.name)?'videos':'imágenes'}: ${limitMB} MB.`);
+  }
 
   if (errors.length > 0) {
     e.preventDefault();

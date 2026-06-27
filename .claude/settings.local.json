@@ -13,7 +13,16 @@
       "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\) - X-Frame-Options: $\\($r.Headers['X-Frame-Options']\\)\" } catch { \"Error: $_\" })",
       "PowerShell(if \\(Test-Path \"c:\\\\Users\\\\Juan Chinetti\\\\Desktop\\\\Gestion de tickets\\\\.flask_secret\"\\) { $k = Get-Content \"c:\\\\Users\\\\Juan Chinetti\\\\Desktop\\\\Gestion de tickets\\\\.flask_secret\"; \"Clave generada: $\\($k.Length\\) caracteres hex\" } else { \"Archivo no encontrado\" })",
       "PowerShell($env:PATH = $env:PATH + \";C:\\\\Program Files\\\\Git\\\\cmd\"; git --version)",
-      "PowerShell(New-Item -ItemType File -Path \"c:\\\\Users\\\\Juan Chinetti\\\\Desktop\\\\Gestion de tickets\\\\static\\\\uploads\\\\.gitkeep\" -Force)"
+      "PowerShell(New-Item -ItemType File -Path \"c:\\\\Users\\\\Juan Chinetti\\\\Desktop\\\\Gestion de tickets\\\\static\\\\uploads\\\\.gitkeep\" -Force)",
+      "PowerShell(netstat -ano)",
+      "PowerShell(Stop-Process -Id 8584 -Force)",
+      "PowerShell(docker --version)",
+      "PowerShell(Start-Sleep -Seconds 20; try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\) - App corriendo en Docker\" } catch { \"Todavia iniciando...\" })",
+      "PowerShell(Start-Sleep -Seconds 4; try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\) - Corriendo en Docker\" } catch { \"Error: $_\" })",
+      "PowerShell(docker volume ls)",
+      "PowerShell(docker exec gestiondetickets-web-1 ls /app/data/)",
+      "PowerShell(Start-Sleep -Seconds 5; try { $r = Invoke-WebRequest -Uri \"http://localhost:5000\" -UseBasicParsing -TimeoutSec 5; \"HTTP $\\($r.StatusCode\\)\" } catch { \"Error: $_\" })",
+      "PowerShell(docker exec gestiondetickets-web-1 ffmpeg -version 2>&1)"
     ]
   }
 }
