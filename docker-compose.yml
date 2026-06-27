@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - DATA_DIR=/app/data
+      - FLASK_DEBUG=0
+    volumes:
+      - app_data:/app/data          # Base de datos + clave secreta
+      - app_uploads:/app/static/uploads  # Imágenes subidas
+    restart: unless-stopped
+
+volumes:
+  app_data:
+  app_uploads:

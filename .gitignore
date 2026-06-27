@@ -21,6 +21,9 @@ __pycache__/
 # Variables de entorno
 .env
 
+# Docker data (DB + clave secreta en contenedor)
+data/
+
 # Windows
 Thumbs.db
 desktop.ini
